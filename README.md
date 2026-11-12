@@ -6,7 +6,7 @@
 
 想进一步了解玩法和项目背景，可以参考原项目的详细介绍。 [原项目 README](https://github.com/kirobani/ai-draw-guess#readme)
 
-[点击在线试玩](GITHUB_PAGES_URL)，在浏览器里直接玩。
+[点击在线试玩](https://vibebar.github.io/ai-draw-online/)，在浏览器里直接玩。
 
 API Key 会保存在当前浏览器里，建议玩完关闭网页后，到创建 Key 的平台删除这把 Key。
 
