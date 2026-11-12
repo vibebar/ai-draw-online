@@ -4,13 +4,24 @@ import {escapeText as esc,recapMarkup} from './conversation.mjs';
 import {banterMarkup} from './banter-view.mjs';
 import {exportSummaryImage} from './export-summary.mjs';
 import {openBattleReplay} from './replay.mjs';
+import {createPlayerAvatar} from './player-avatar.mjs';
 
 function award(players,score,possible){
   const eligible=players.filter(player=>player[possible]>0);
-  if(!eligible.length)return {name:'暂无',rate:'—'};
+  if(!eligible.length)return {winners:[],rate:'—'};
   const best=Math.max(...eligible.map(player=>player[score]/player[possible]));
   const winners=eligible.filter(player=>player[score]/player[possible]===best);
-  return {name:winners.map(player=>player.name).join('、'),rate:Math.round(best*100)+'%'};
+  return {winners,rate:Math.round(best*100)+'%'};
+}
+
+function summaryPlayer(player,label=player.name){
+  const avatar=createPlayerAvatar(player);
+  avatar.setAttribute('aria-hidden','true');
+  return `<span class="summary-player">${avatar.outerHTML}<span>${esc(label)}</span></span>`;
+}
+
+function awardWinners(players){
+  return players.length?players.map(player=>summaryPlayer(player)).join(' '):'暂无';
 }
 
 function attemptMarkup(round,attempt,players){
@@ -32,18 +43,18 @@ function attemptMarkup(round,attempt,players){
 
 export function renderBattleSummary(container,game,act){
   const ranking=[...game.players].sort((a,b)=>b.total-a.total);
-  const score=ranking[0].total,winners=ranking.filter(p=>p.total===score).map(p=>p.name).join('、');
+  const score=ranking[0].total,winners=ranking.filter(p=>p.total===score);
   const draw=award(ranking,'drawScore','drawPossible'),guess=award(ranking,'guessScore','guessPossible');
   container.innerHTML=`<div class="results-head"><div><h1>比赛总结<span class="relay-toggle-all"><button type="button" data-relay-toggle-all="close">全部收起</button><button type="button" data-relay-toggle-all="open">全部展开</button></span></h1><p>${game.history.length} / ${game.total} 题 · ${game.players.length} 位选手</p></div>
     <div class="results-actions"><button id="replayButton">回放</button><button id="exportButton">导出长图</button><button id="homeButton" class="primary">回到主页</button></div></div>
     <div class="awards">
-      <article class="award"><small>总冠军</small><strong>${esc(winners)}</strong><p>${score} 分</p></article>
-      <article class="award"><small>最佳画手</small><strong>${esc(draw.name)}</strong><p>${draw.rate} · 作画得分 / 可得满分</p></article>
-      <article class="award"><small>最佳猜手</small><strong>${esc(guess.name)}</strong><p>${guess.rate} · 猜题得分 / 可得满分</p></article>
+      <article class="award"><small>总冠军</small><strong class="summary-award-winners">${awardWinners(winners)}</strong><p>${score} 分</p></article>
+      <article class="award"><small>最佳画手</small><strong class="summary-award-winners">${awardWinners(draw.winners)}</strong><p>${draw.rate} · 作画得分 / 可得满分</p></article>
+      <article class="award"><small>最佳猜手</small><strong class="summary-award-winners">${awardWinners(guess.winners)}</strong><p>${guess.rate} · 猜题得分 / 可得满分</p></article>
     </div>
     <div class="table-wrap"><table>
       <thead><tr><th>名次</th><th>选手</th><th>总分</th><th>画图分</th><th>猜题分</th><th>猜中题数</th><th>画了几幅</th></tr></thead>
-      <tbody>${ranking.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(playerLabel(p))}</td><td><b>${p.total}</b></td>
+      <tbody>${ranking.map((p,i)=>`<tr><td>${i+1}</td><td>${summaryPlayer(p,playerLabel(p))}</td><td><b>${p.total}</b></td>
         <td>${p.drawScore} / ${p.drawPossible}</td><td>${p.guessScore} / ${p.guessPossible}</td><td>${p.hits} / ${p.guessPossible/3}</td><td>${p.drawn}</td></tr>`).join('')}</tbody>
     </table></div>
     <h2 class="gallery-heading">每题的画作与猜词</h2>

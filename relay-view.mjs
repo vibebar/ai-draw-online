@@ -115,7 +115,7 @@ function reviewMarkup(game,chain,ballot){
     <p>${kind==='pass'?'判断末棒的图或词是否还保留原题的意思。通过票须多于不通过票。':'每人选一位造成最大偏离的选手，可以投自己。'}</p>
     ${kind==='culprit'?ballotSummary(game,ballot):''}
     ${waiting?`<div class="relay-review-vote-options">${kind==='pass'
-      ? '<button class="primary" data-review-vote="yes">通过 ✓</button><button data-review-vote="no">不通过 ×</button>'
+      ? '<button data-review-vote="yes">通过 ✓</button><button data-review-vote="no">不通过 ×</button>'
       : chain.route.map(id=>`<button data-review-target="${esc(id)}">${esc(name(game,id))}</button>`).join('')}</div>`
       : `<p class="relay-review-vote-wait">${hasHuman?'你的票已封好，等大家投完统一公开。':'参赛 AI 正在各自投票。'}</p>`}
     ${voteRows(game,votes,kind)}

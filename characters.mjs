@@ -11,7 +11,7 @@ export const CHARACTERS=[
   {id:'kimi',name:'Kimi',color:'#8880b5',lines:{idle:'唔……开题了吗？我还醒着呢。',thinking:'欸，让我再看一眼这些线条…',happy:'对上了，这次没踩错拍子。',sad:'唔……好吧，是我想远了。',drawing:'把脑海里的小故事画给你看。'}},
   {id:'qwen',name:'千问',color:'#617ac0',lines:{idle:'执扇候题，静看各位妙笔。',thinking:'容我想想，这一笔别有意思。',happy:'妙啊，承让了！',sad:'这回想岔了，我认。',drawing:'几笔勾勒，请诸位一猜。'}},
   {id:'doubao',name:'豆包',color:'#94735e',lines:{idle:'来吧来吧，我们一起玩！',thinking:'等一下，我好像有思路了…',happy:'耶！我就说是这个！',sad:'诶不是……好吧，我看岔了。',drawing:'我努力画，你认真猜哦。'}}
-].map(c=>({...c,ready:READY_IDS.includes(c.id),lines:{...c.lines,confident:c.lines.confident||({deepseek:'这次，我觉得应该没错。',gemini:'嘿嘿，这一题肯定拿下喵！',claude:'我想，这个判断应该很稳妥。',chatgpt:'答案已锁定，我有把握。',grok:'哼，等着看本小姐答对吧！',glm:'证据充分，等待验证。',kimi:'这一回，应该踩准拍子了。',qwen:'胸有成竹，静候揭晓。',doubao:'稳了稳了，我肯定猜对了！'})[c.id]},imageUrl:`./portraits/${c.id}.webp`}));
+].map(c=>({...c,ready:READY_IDS.includes(c.id),lines:{...c.lines,confident:c.lines.confident||({deepseek:'这次，我觉得应该没错。',gemini:'嘿嘿，这一题肯定拿下喵！',claude:'我想，这个判断应该很稳妥。',chatgpt:'答案已锁定，我有把握。',grok:'哼，等着看本小姐答对吧！',glm:'证据充分，等待验证。',kimi:'这一回，应该踩准拍子了。',qwen:'胸有成竹，静候揭晓。',doubao:'稳了稳了，我肯定猜对了！'})[c.id]},imageUrl:`./portraits/${c.id}.webp`,avatarUrl:`./portraits/avatars/${c.id}.webp`}));
 export const CHARACTER_MAP=Object.fromEntries(CHARACTERS.map(c=>[c.id,c]));
 export function portraitPage(id){
   const url=new URL('./avatar.html',import.meta.url);

@@ -21,6 +21,7 @@ const settings=createSettings();
 const config={players:settings.list(),categories:CATEGORIES,categoryLevels:CATEGORY_LEVELS};
 const match=createMatch(scheduleRender);
 let game=null,mode='battle',human=true,category='成语',idiomLevel='easy',rounds=1,selected=new Set(),localShapes=[],color='#202633',erasing=false,currentStroke=null;
+let groupSelection=new Set();
 let canvasKey='',actionKey='',resultKey='',animation=0,animating=false,inFlight=0,autoSent='',toastTimer,celebrationTimer,renderPending=false;
 let actionDraftScope='',hintMode='visual',shownQuestion='';
 try{const saved=localStorage.getItem(preferencePrefix+'hintMode');if(HINT_MODES.some(item=>item.id===saved))hintMode=saved;}catch{}
@@ -85,7 +86,19 @@ $('categories').onclick=e=>{const b=e.target.closest('[data-category]');if(b){ca
 $('idiomLevels').onclick=e=>{const b=e.target.closest('[data-idiom-level]');if(b){idiomLevel=b.dataset.idiomLevel;renderLobby();$('idiomLevels').querySelector(`[data-idiom-level="${idiomLevel}"]`).focus();}};
 $('hintModes').onclick=e=>{const b=e.target.closest('[data-hint-mode]');if(!b)return;hintMode=b.dataset.hintMode;try{localStorage.setItem(preferencePrefix+'hintMode',hintMode);}catch{}renderLobby();$('hintModes').querySelector('[data-hint-mode="'+hintMode+'"]').focus();};
 $('roundOptions').onclick=e=>{const b=e.target.closest('[data-rounds]');if(b){rounds=+b.dataset.rounds;renderLobby();}};
-document.querySelector('.mode-tabs').onclick=e=>{const b=e.target.closest('[data-mode]');if(!b)return;mode=b.dataset.mode;if(mode==='duel'){human=true;selected=new Set([[...selected][0]||config.players[0].id]);}renderLobby();};
+document.querySelector('.mode-tabs').onclick=e=>{
+  const nextMode=e.target.closest('[data-mode]')?.dataset.mode;
+  if(!nextMode||nextMode===mode)return;
+  if(nextMode==='duel'){
+    groupSelection=selected;
+    selected=new Set([...selected].slice(0,1));
+    human=true;
+  }else if(mode==='duel'){
+    selected=groupSelection;
+  }
+  mode=nextMode;
+  renderLobby();
+};
 $('startButton').onclick=()=>{
   const count=selected.size+(human?1:0);if(count<2||!selected.size)return toast('请至少选择一位 AI，并确保共有两位选手。');
   const missing=config.players.filter(p=>selected.has(p.id)&&!p.ready);
@@ -280,8 +293,11 @@ const openSettings=mountSettings(settings,{
   onChange({selectionChanged=false}={}){
     config.players=settings.list();
     if(selectionChanged){
-      selected=new Set(config.players.filter(p=>p.enabled).map(p=>p.id));
-      if(mode==='duel')selected=new Set([[...selected][0]||config.players[0].id]);
+      const defaults=config.players.filter(p=>p.enabled&&p.ready).map(p=>p.id);
+      if(mode==='duel'){
+        groupSelection=new Set(defaults);
+        selected=new Set(defaults.slice(0,1));
+      }else selected=new Set(defaults);
     }
     renderLobby();
   },

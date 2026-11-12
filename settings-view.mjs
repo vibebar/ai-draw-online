@@ -2,7 +2,7 @@ import {CHARACTERS,CHARACTER_MAP} from './characters.mjs';
 import {escapeText as esc} from './conversation.mjs';
 import {mountModelPicker} from './model-picker.mjs';
 import {chosenEffort,waitSeconds} from './reasoning.mjs';
-import {PRESETS} from './lib/providers.mjs';
+import {DEFAULT_PLAYERS,PRESETS} from './lib/providers.mjs';
 import {modelCatalog} from './lib/model-catalog.mjs';
 import {MAX_STORED,MAX_COPIES,isCopy,isTestHost,preferencePrefix} from './lib/settings.mjs';
 import {DEFAULT_MODELS,OPENROUTER_BASE} from './lib/default-models.mjs';
@@ -40,11 +40,11 @@ function settingsRow(player){
 }
 
 const QUICK_SOURCES={
-  openrouter:{label:'OpenRouter（推荐，一把 Key 用各家 AI；如果你买不了它，就换一家）',name:'OpenRouter',url:'https://openrouter.ai/keys',hint:'先在 OpenRouter 注册并充值，再创建一把 Key。保存后可以挑选让哪些 AI 上场。'},
+  openrouter:{label:'OpenRouter（推荐，一把 Key 用各家 AI；如果你买不了它，就换一家）',name:'OpenRouter',url:'https://openrouter.ai/keys',hint:'先在 OpenRouter 注册并充值，再创建一把 Key。保存后会自动选中可用的内置 AI，可在大厅取消勾选。'},
   deepseek:{label:'DeepSeek 官方（推荐）',name:'DeepSeek',player:'deepseek',url:'https://platform.deepseek.com/',hint:'这把 Key 只让 DeepSeek 上场。先在 DeepSeek 开放平台登录、充值并创建 Key。'},
-  siliconflow:{label:'硅基流动（国内聚合平台，推荐）',name:'硅基流动',aggregator:true,url:'https://cloud.siliconflow.cn/',hint:'国内聚合平台，一把 Key 能用 DeepSeek、千问、GLM、Kimi 等。先在硅基流动注册、充值并创建 Key，保存后挑选型号上场。'},
-  bailian:{label:'阿里云百炼（国内聚合平台）',name:'阿里云百炼',aggregator:true,url:'https://bailian.console.aliyun.com/',hint:'阿里云的模型平台，千问全系列和部分第三方模型。先在百炼控制台开通、充值并创建 API Key，保存后挑选型号上场。'},
-  ark:{label:'火山方舟（国内聚合平台）',name:'火山方舟',aggregator:true,url:'https://console.volcengine.com/ark',hint:'字节的模型平台，豆包全系列和部分第三方模型。先在火山方舟控制台开通模型、充值并创建 API Key，保存后挑选型号上场。'},
+  siliconflow:{label:'硅基流动（国内聚合平台，不推荐）',name:'硅基流动',aggregator:true,url:'https://cloud.siliconflow.cn/',hint:'国内聚合平台，一把 Key 能用 DeepSeek、千问、GLM、Kimi 等。先在硅基流动注册、充值并创建 Key，保存后可在高级设置换型号。'},
+  bailian:{label:'阿里云百炼（国内聚合平台）',name:'阿里云百炼',aggregator:true,url:'https://bailian.console.aliyun.com/',hint:'阿里云的模型平台，千问全系列和部分第三方模型。先在百炼控制台开通、充值并创建 API Key，保存后可在高级设置换型号。'},
+  ark:{label:'火山方舟（国内聚合平台）',name:'火山方舟',aggregator:true,url:'https://console.volcengine.com/ark',hint:'字节的模型平台，豆包全系列和部分第三方模型。先在火山方舟控制台开通模型、充值并创建 API Key，保存后可在高级设置换型号。'},
   glm:{label:'智谱 GLM 官方（不能用：官方接口不允许网页调用，我服了）',name:'智谱 GLM',player:'glm',url:'',unsupported:true,hint:'智谱官方接口不允许从网页直接调用，粘贴 Key 也连不上。想让 GLM 上场，请改用 OpenRouter 的 Key。'},
   kimi:{label:'Kimi 官方',name:'Kimi',player:'kimi',url:'https://platform.moonshot.ai/',hint:'这把 Key 只让 Kimi 上场。先在 Moonshot 开放平台登录、充值并创建 Key。'},
   qwen:{label:'千问官方',name:'千问',player:'qwen',url:'',hint:'这把 Key 只让千问上场。先在千问的模型平台登录、充值并创建 Key。'},
@@ -76,6 +76,11 @@ async function fetchPlatformModels(baseUrl,key){
   return (data.data||data.models||[]).map(m=>typeof m==='string'?m:m.id).filter(Boolean);
 }
 
+function addDefaultPlayers(players,ids){
+  const existing=new Set(players.map(player=>player.id));
+  return [...players,...DEFAULT_PLAYERS.filter(player=>ids.has(player.id)&&!existing.has(player.id))];
+}
+
 const field=(row,name)=>row.querySelector('[data-field='+name+']');
 function rowPlayer(row){
   const value=name=>field(row,name).value;
@@ -90,7 +95,7 @@ function rowPlayer(row){
 export function mountSettings(settings,{onChange,toast}){
   const $=id=>document.getElementById(id);
   const dialog=$('settingsDialog'),host=$('settingsPlayers');
-  let catalog;
+  let catalog,savingQuickKey=false;
   // 聚合平台的 Key 和型号表，存在这台电脑的浏览器里，刷新后自动读回。
   const platformStorageKey=preferencePrefix+'platform-keys-v1';
   const platformKeys=new Map();
@@ -104,7 +109,7 @@ export function mountSettings(settings,{onChange,toast}){
     syncSourcePicker?.();
     const source=QUICK_SOURCES[$('quickSource').value],locked=!!source.unsupported;
     $('quickHint').innerHTML=source.hint+(source.url?` <a href="${source.url}" target="_blank" rel="noopener">去创建 Key ↗</a>`:'');
-    $('quickKey').disabled=locked;$('quickSave').disabled=locked;
+    $('quickKey').disabled=locked;$('quickSave').disabled=locked||savingQuickKey;
     $('quickKey').placeholder=locked?'请在高级设置中配置':'粘贴你的 '+source.name+' API Key';
   }
   function updateQuickStatus(){
@@ -147,54 +152,70 @@ export function mountSettings(settings,{onChange,toast}){
   $('quickAddButton').onclick=()=>{
     try{
       const [sourceId,characterId]=$('quickAddCharacter').value.split(':');
-      settings.ensurePlayer(characterId);
-      if(sourceId!=='openrouter')connectPlatformPlayers(sourceId,[characterId]);
+      if(sourceId==='openrouter')settings.ensurePlayer(characterId);
+      else connectPlatformPlayers(sourceId,platformKeys.get(sourceId),new Set([characterId]));
       onChange({selectionChanged:true});renderCopies();
     }catch(error){$('quickStatus').textContent=error.message;}
   };
   // 把指定的 AI 接到某个聚合平台：用平台上匹配到的型号和这把 Key。
-  function connectPlatformPlayers(sourceId,characterIds){
-    const platform=platformKeys.get(sourceId);
-    const rows=settings.list().map(p=>characterIds.includes(p.id)&&platform.families[p.characterId]
-      ?{...p,provider:sourceId,baseUrl:PRESETS[sourceId].baseUrl,model:platform.families[p.characterId].model,reasoningEffort:'auto',apiKey:platform.key,clearKey:false,enabled:true}
-      :{...p,apiKey:'',clearKey:false});
+  function connectPlatformPlayers(sourceId,platform,ids){
+    const players=addDefaultPlayers(settings.list(),ids);
+    const connected=new Map();
+    for(const player of players){
+      const family=platform.families[player.characterId];
+      if(ids.has(player.id)&&family){
+        connected.set(player.id,{...player,provider:sourceId,baseUrl:PRESETS[sourceId].baseUrl,
+          model:family.model,reasoningEffort:'auto',apiKey:platform.key,enabled:true});
+      }
+    }
+    const rows=players.map(player=>{
+      const baseId=player.id.replace(/-copy-\d+$/,'');
+      const base=connected.get(baseId);
+      return base?{...base,id:player.id,name:player.name,enabled:baseId===player.id||player.enabled}:player;
+    });
     settings.save(rows);
-    for(const id of characterIds)if(settings.list().some(p=>p.id===id))settings.setCopies(id,settings.copiesOf(id));
   }
   $('quickDone').onclick=()=>dialog.close();
   async function saveQuickKey(){
     const sourceId=$('quickSource').value,source=QUICK_SOURCES[sourceId],key=$('quickKey').value.trim();
-    if(source.unsupported)return;
+    if(source.unsupported||savingQuickKey)return;
     if(!key){$('quickStatus').textContent='请先粘贴 API Key。';$('quickKey').focus();return;}
     if(source.aggregator){
-      $('quickSave').disabled=true;$('quickStatus').textContent='正在读取 '+source.name+' 的型号列表…';
+      savingQuickKey=true;
+      $('quickSave').disabled=true;$('quickClear').disabled=true;
+      $('quickStatus').textContent='正在读取 '+source.name+' 的型号列表…';
       try{
         const families=pickFamilyModels(await fetchPlatformModels(PRESETS[sourceId].baseUrl,key));
         if(!Object.keys(families).length)throw new Error('没在 '+source.name+' 上找到能用的对话型号，可以展开「高级设置」手动填写。');
-        platformKeys.set(sourceId,{key,families,name:source.name});savePlatformKeys();
-        // 和 OpenRouter 一样：还没连上的 AI，只要平台上有就自动接上；一个都没有时先请一位上场。
-        let targets=settings.list().filter(p=>!p.ready&&!isCopy(p)&&families[p.characterId]?.vision).map(p=>p.id);
-        if(!targets.length&&!settings.list().some(p=>p.ready)){const first=['deepseek','qwen','glm','kimi','doubao'].find(id=>families[id]?.vision)||Object.keys(families)[0];settings.ensurePlayer(first);targets=[first];}
-        if(targets.length)connectPlatformPlayers(sourceId,targets);
+        const platform={key,families,name:source.name};
+        const players=settings.list(),existing=new Set(players.map(p=>p.id));
+        const targets=new Set(players.filter(p=>!p.ready&&!isCopy(p)&&families[p.characterId]?.vision).map(p=>p.id));
+        for(const player of DEFAULT_PLAYERS){
+          if(!existing.has(player.id)&&families[player.characterId]?.vision)targets.add(player.id);
+        }
+        if(!targets.size&&!players.some(p=>p.ready))targets.add(Object.keys(families)[0]);
+        if(targets.size)connectPlatformPlayers(sourceId,platform,targets);
+        platformKeys.set(sourceId,platform);savePlatformKeys();
         onChange({selectionChanged:true});
-        $('quickKey').value='';updateQuickStatus();renderCopies();
-        toast(source.name+' 已连接。在下面挑选上场的 AI，也可以给它们改名。');
+        if($('quickSource').value===sourceId)$('quickKey').value='';
+        updateQuickStatus();renderCopies();
+        toast(source.name+(targets.size?' 已连接，可用选手已加入名单。':' 已连接。'));
       }catch(error){$('quickStatus').textContent=error.message;}
-      finally{$('quickSave').disabled=false;}
+      finally{savingQuickKey=false;$('quickClear').disabled=false;updateQuickHint();}
       return;
     }
     try{
       if(sourceId==='openrouter'){
-        settings.setSharedKey(key);
-        // 没有单独 Key 的选手全部改回 OpenRouter，保证一把 Key 就能让大家上场。
-        const rows=settings.list().map(p=>p.hasOwnKey||p.provider==='mock'?{...p,apiKey:'',clearKey:false}:{...p,provider:'openrouter',baseUrl:OPENROUTER_BASE,
-          model:p.provider==='openrouter'?p.model:DEFAULT_MODELS[p.characterId]||PRESETS.openrouter.model,reasoningEffort:p.provider==='openrouter'?p.reasoningEffort:'auto',apiKey:'',clearKey:false});
-        if(!rows.some(p=>p.enabled))(rows.find(p=>p.characterId==='chatgpt')||rows[0]).enabled=true;
-        settings.save(rows);
+        const players=addDefaultPlayers(settings.list(),new Set(DEFAULT_PLAYERS.map(player=>player.id)));
+        // 已填写单独 Key 的选手沿用原接口。其余选手接入 OpenRouter 并默认上场。
+        const rows=players.map(p=>p.hasOwnKey||p.provider==='mock'?p:{...p,provider:'openrouter',baseUrl:OPENROUTER_BASE,
+          model:p.provider==='openrouter'?p.model:DEFAULT_MODELS[p.characterId]||PRESETS.openrouter.model,
+          reasoningEffort:p.provider==='openrouter'?p.reasoningEffort:'auto',enabled:true});
+        settings.save(rows,{openRouterKey:key});
         onChange({selectionChanged:true});
         $('quickKey').value='';
         updateQuickStatus();renderCopies();
-        toast('OpenRouter 已连接。在下面挑选上场的 AI，也可以给它们改名。');
+        toast('OpenRouter 已连接，可用选手已加入名单。');
         return;
       }else{
         settings.ensurePlayer(source.player);
@@ -241,8 +262,8 @@ export function mountSettings(settings,{onChange,toast}){
   $('quickKey').onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();saveQuickKey();}};
   $('quickClear').onclick=()=>{
     try{
-      settings.setSharedKey('');platformKeys.clear();savePlatformKeys();
-      settings.save(settings.list().map(p=>({...p,apiKey:'',clearKey:true})));
+      settings.save(settings.list().map(p=>({...p,clearKey:true})),{openRouterKey:''});
+      platformKeys.clear();savePlatformKeys();
       onChange();updateQuickStatus();renderCopies();toast('已清除全部 Key。');
     }catch(error){$('quickStatus').textContent=error.message;}
   };
