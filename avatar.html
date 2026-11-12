@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>角色立绘</title>
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./avatar.css">
+  <link rel="stylesheet" href="./fonts.css">
+</head>
+<body class="avatar-page">
+  <main class="avatar-layout">
+    <header class="avatar-header">
+      <a href="./index.html">← 回到游戏</a>
+      <a href="./characters.html">全部角色</a>
+    </header>
+    <section class="avatar-stage"><img id="portrait" class="full-portrait" alt="角色立绘"></section>
+    <section class="avatar-controls">
+      <label class="character-label">选择角色<select id="characterSelect"></select></label>
+      <h1 id="characterName"></h1>
+      <p id="loadStatus" role="status">图片加载中…</p>
+    </section>
+  </main>
+  <script type="module" src="./avatar-preview.mjs"></script>
+</body>
+</html>
