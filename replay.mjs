@@ -1,28 +1,16 @@
 import {paint} from './drawing.mjs';
-import {seatCharacter} from './seat-presentation.mjs';
+import {createPlayerAvatar} from './player-avatar.mjs';
 import {drawingTransition,partialStroke,strokeDuration,animateProgress} from './drawing-playback.mjs';
 
 // 回放：用比赛结束后的结果重放一遍，画笔一笔笔画出来，猜词逐条出现。
 const WAIT={slow:1.6,normal:1,fast:.4};
-const GHOST='<svg viewBox="28 24 150 150" aria-hidden="true"><path class="ghost-body" fill-rule="evenodd" d="M34.2 91.2h9V81.1h9.3V71H68v-9.9h34.7V71H118v9.4h8.3v11.5h9.2V143h-8.2v12.8h-19.8V143H94.4v12.8H74.8V143H61.9v12.8H42.3v-12h-8.1zM71.8 100.3v13.6h13.1v-13.6zM105 100.3v13.6h13.1v-13.6z"/><path class="ghost-prop" d="M154 49h17v8h5v19h-7v11h-8v12h-7v12h-6v12h-7v13h-12v-19h7v-12h6V93h7V79h-5V63h5V55h5z"/><path class="ghost-detail" d="M149 78h20v9h-8v4h-12z"/></svg>';
 
-// 头像：AI 用角色立绘（裁头部），人类用小幽灵。
-function avatar(player){
-  const span=document.createElement('span');
-  span.className='replay-avatar';
-  if(!player)return span;
-  span.title=player.name;
-  const character=player.human?null:seatCharacter(player);
-  if(character){const img=document.createElement('img');img.src=character.imageUrl;img.alt=player.name;span.append(img);}
-  else span.innerHTML=GHOST;
-  return span;
-}
 function person(player){
   const box=document.createElement('span');
   box.className='replay-person';
   const name=document.createElement('b');
   name.textContent=player.name;
-  box.append(avatar(player),name);
+  box.append(createPlayerAvatar(player),name);
   return box;
 }
 
@@ -49,7 +37,7 @@ function mount(scenes){
     if(line.tone)li.className=line.tone;
     const name=document.createElement('b'),text=document.createElement('span');
     name.textContent=line.name;text.textContent=line.text;
-    if(line.player)li.append(avatar(line.player));
+    if(line.player)li.append(createPlayerAvatar(line.player));
     li.append(name,text);
     if(line.reason){const small=document.createElement('small');small.textContent=line.reason;li.append(small);}
     lines.append(li);lines.scrollTop=lines.scrollHeight;
@@ -62,7 +50,7 @@ function mount(scenes){
     const scene=scenes[index];
     q('[data-head]').textContent=scene.head;
     q('[data-sub]').textContent=scene.sub||'';
-    q('[data-owner]').replaceChildren(...(scene.owner?[avatar(scene.owner)]:[]));
+    q('[data-owner]').replaceChildren(...(scene.owner?[createPlayerAvatar(scene.owner)]:[]));
     const pass=q('[data-pass]'),arrow=document.createElement('i');
     arrow.textContent='→';arrow.setAttribute('aria-hidden','true');
     pass.hidden=!(scene.from&&scene.to?.length);

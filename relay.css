@@ -8,7 +8,8 @@
 .relay-review-ballot>header>span{color:#648196;flex-shrink:0}
 .relay-review-vote-options{display:flex;gap:12px;flex-wrap:wrap;margin:22px 0}
 .relay-review-vote-options button{font-size:20px;padding:14px 24px;border-radius:12px;border:1px solid #cedee8;background:#eef5fb;color:#355e79;min-width:140px}
-.relay-review-vote-options button.primary{background:#367a98;border-color:#367a98;color:white}
+#results .relay-review-vote-options button[data-review-vote="yes"]{background:#eaf7ee;border-color:#6d9f7c;color:#245c34}
+#results .relay-review-vote-options button[data-review-vote="no"]{background:#fff0ef;border-color:#ba766f;color:#8d2924}
 .relay-review-voters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:15px 0}
 .relay-review-voter{border:1px solid #dce6ed;border-radius:11px;padding:14px 16px;background:#f7fafd;min-width:0}
 .relay-review-voter strong{display:block;font-size:16px;color:#365a73}
