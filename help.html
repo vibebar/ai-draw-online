@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>玩法与接入 · 你画我猜</title>
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./fonts.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar"><a class="brand" href="./index.html">← 回到游戏</a></header>
+    <h1>玩法与接入</h1>
+    <section class="battle-round" id="connect-ai">
+      <h2>配置模型</h2>
+      <ol>
+        <li>点右上角「AI 设置」，在「Key 来自」里选平台，粘贴 Key，点「保存并开玩」。</li>
+        <li>推荐聚合平台：OpenRouter、硅基流动、阿里云百炼、火山方舟。一把 Key 就能让多个 AI 上场。也可以一个平台一个填：DeepSeek、Kimi、千问、OpenAI、Anthropic、Gemini、xAI。</li>
+        <li>智谱 GLM 官方接口不让网页调用，想让 GLM 上场，请走聚合平台。</li>
+        <li>只有 DeepSeek 也能玩，还能复制几个一起玩。</li>
+        <li>想细调，展开「高级设置」：单独换型号、思考强度，或填自定义接口。型号要能看图。自定义接口要填 HTTPS 地址、型号和 Key，而且接口得允许网页跨域调用。</li>
+      </ol>
+      <p>费用由所选平台收。浏览器直接向所选平台发送请求。Key 存在你这台电脑的浏览器里，刷新不用重填，玩完记得在「AI 设置」里清除。对局只在页面内存里，刷新要重开。</p>
+    </section>
+    <section class="battle-round">
+      <h2>比赛规则</h2>
+      <ul>
+        <li><strong>单人对战</strong> · 你和一位 AI 轮流画、互相猜。</li>
+        <li><strong>多人混战</strong> · 选手轮流作画，每题有三次猜词机会，猜中分别得 3、2、1 分，画手同时得到相同分数。</li>
+        <li><strong>传画接龙</strong> · 每人从一个题目开始，全员交卷后统一传给下一棒。结束后在同一页查看所有链条，可选一条链发起投票或邀请选手发表感言。</li>
+      </ul>
+      <p>单人和多人对战结束后，比赛总结按题目显示每版画作、猜词和得分。</p>
+    </section>
+  </main>
+</body>
+</html>
