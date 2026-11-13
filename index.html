@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><meta name="theme-color" content="#edf2fa"><title>AI 你画我猜</title><link rel="stylesheet" href="./style.css?v=summary-avatars-1"><link rel="stylesheet" href="./avatar.css"><link rel="stylesheet" href="./fonts.css"><link rel="stylesheet" href="./relay.css?v=relay-votes-1"></head>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><meta name="theme-color" content="#edf2fa"><title>AI 你画我猜</title><link rel="stylesheet" href="./style.css?v=lobby-dialogs-1"><link rel="stylesheet" href="./avatar.css?v=lobby-dialogs-1"><link rel="stylesheet" href="./fonts.css"><link rel="stylesheet" href="./relay.css?v=relay-votes-1"></head>
 <body>
 <div class="app-shell">
-  <header class="topbar"><a href="./index.html" class="brand" aria-label="你画我猜首页">AI 你画我猜</a><nav><a href="./characters.html" target="_blank" rel="noopener">角色预览</a><a href="./help.html" target="_blank" rel="noopener">玩法与接入</a><button id="settingsButton" class="quiet" disabled>AI 设置 <span aria-hidden="true">⚙</span></button></nav></header>
+  <header class="topbar"><a href="./index.html" class="brand" aria-label="你画我猜首页">AI 你画我猜</a><nav><a href="./characters.html" id="charactersLink" aria-haspopup="dialog">角色预览</a><a href="./help.html" data-open-help aria-haspopup="dialog">玩法与接入</a><button id="settingsButton" class="quiet" disabled>AI 设置 <span aria-hidden="true">⚙</span></button></nav></header>
   <main>
   <section id="lobby">
     <div class="mode-tabs" role="group" aria-label="游戏模式"><button data-mode="duel"><span>单人对战</span><small>你和一位 AI，轮流画、互相猜</small></button><button data-mode="battle" class="selected"><span>多人混战</span><small>多个 AI 同台比，你也可以加入</small></button><button data-mode="relay"><span>传画接龙</span><small>一人一条链，同时传，结束后查看全部流程</small></button></div>
@@ -19,7 +19,33 @@
   <section id="results" hidden></section><section id="conversationPanel" class="match-chat" aria-label="对局聊天记录" hidden><header class="chat-heading"><div><h3>对局聊天</h3><span class="chat-count">0 条</span></div><select aria-label="筛选聊天记录"><option value="guess" selected>猜词与理由</option><option value="all">全部消息</option><option value="hint">提示</option><option value="recap">赛后复盘</option></select></header><p class="chat-empty">角色的提示、猜词和复盘会留在这里。</p><div class="chat-log" role="log" aria-live="off" aria-label="历史对话" tabindex="0"></div><footer><span>往上翻看历史 · 按题目记录</span><button class="chat-new" hidden>有新消息 ↓</button><label><input type="checkbox" checked>跟随最新</label></footer></section>
   </main>
 </div>
-<dialog id="settingsDialog" aria-label="连接 AI"><div class="dialog-head"><p class="dialog-note">API Key 保存在当前浏览器里，调用模型时会发给所选的接口。可以在这里随时清除 Key。</p><button id="closeSettings" class="icon-button" aria-label="关闭设置">×</button></div><section class="quick-key" aria-label="粘贴 Key"><div class="quick-key-head"><p>只有 DeepSeek 也能玩，复制三四个一起玩也行。更推荐聚合平台，一把 Key 全都能玩；你也能一个一个填。</p></div><div class="quick-source"><span>Key 来自</span><select id="quickSource" aria-label="Key 来自"></select></div><div class="quick-key-row"><input id="quickKey" type="password" autocomplete="off" aria-label="API Key" placeholder="粘贴你的 API Key"><button id="quickSave" class="primary">保存并开玩</button></div><p id="quickHint" class="quick-hint"></p><div class="quick-status-row"><p id="quickStatus" role="status"></p><button id="quickClear" class="quiet" hidden>清除 Key</button></div><div id="quickCopies" class="quick-copies" hidden><p class="quick-copies-title"><b>谁上场、叫什么名字</b>同一个 AI 可以多上场几位，名字点一下就能改。还有别家的 Key，可以在上面换个平台接着粘贴。</p><div id="quickCopyList" class="quick-copy-list"></div><div id="quickAdd" class="quick-add" hidden><span>再加一位</span><select id="quickAddCharacter" aria-label="选择要添加的 AI"></select><button id="quickAddButton">＋ 添加</button></div><div class="quick-copies-foot"><span id="quickCopyTotal"></span><button id="quickDone" class="primary">好了，去选题</button></div></div></section><details id="advancedSettings" class="advanced-settings"><summary>高级设置（可选）<small>单独换型号、思考强度、自定义接口</small></summary><p class="settings-note" id="modelCatalogStatus" role="status"></p><p class="settings-note">每位 AI 可以单独设置型号和接口，单独填写的 Key 优先。自定义接口需要允许浏览器跨域请求。<a href="./help.html#connect-ai" target="_blank" rel="noopener">配置说明 ↗</a></p><div id="settingsPlayers"></div></details><div class="dialog-footer"><button id="addPlayer" class="quiet">＋ 添加 AI</button><span id="settingsStatus" role="status"></span><button id="saveSettings" class="primary">保存设置</button></div></dialog>
+<dialog id="settingsDialog" aria-label="连接 AI"><div class="dialog-head"><p class="dialog-note">API Key 保存在当前浏览器里，调用模型时会发给所选的接口。可以在这里随时清除 Key。</p><button id="closeSettings" class="icon-button" aria-label="关闭设置">×</button></div><section class="quick-key" aria-label="粘贴 Key"><div class="quick-key-head"><p>只有 DeepSeek 也能玩，复制三四个一起玩也行。更推荐聚合平台，一把 Key 全都能玩；你也能一个一个填。</p></div><div class="quick-source"><span>Key 来自</span><select id="quickSource" aria-label="Key 来自"></select></div><div class="quick-key-row"><input id="quickKey" type="password" autocomplete="off" aria-label="API Key" placeholder="粘贴你的 API Key"><button id="quickSave" class="primary">保存并开玩</button></div><p id="quickHint" class="quick-hint"></p><div class="quick-status-row"><p id="quickStatus" role="status"></p><button id="quickClear" class="quiet" hidden>清除 Key</button></div><div id="quickCopies" class="quick-copies" hidden><p class="quick-copies-title"><b>谁上场、叫什么名字</b>同一个 AI 可以多上场几位，名字点一下就能改。还有别家的 Key，可以在上面换个平台接着粘贴。</p><div id="quickCopyList" class="quick-copy-list"></div><div id="quickAdd" class="quick-add" hidden><span>再加一位</span><select id="quickAddCharacter" aria-label="选择要添加的 AI"></select><button id="quickAddButton">＋ 添加</button></div><div class="quick-copies-foot"><span id="quickCopyTotal"></span><button id="quickDone" class="primary">好了，去选题</button></div></div></section><details id="advancedSettings" class="advanced-settings"><summary>高级设置（可选）<small>单独换型号、思考强度、自定义接口</small></summary><p class="settings-note" id="modelCatalogStatus" role="status"></p><p class="settings-note">每位 AI 可以单独设置型号和接口，单独填写的 Key 优先。自定义接口需要允许浏览器跨域请求。<a href="./help.html#connect-ai" data-open-help aria-haspopup="dialog">配置说明</a></p><div id="settingsPlayers"></div></details><div class="dialog-footer"><button id="addPlayer" class="quiet">＋ 添加 AI</button><span id="settingsStatus" role="status"></span><button id="saveSettings" class="primary">保存设置</button></div></dialog>
+<dialog id="charactersDialog" class="lobby-dialog" aria-labelledby="charactersTitle">
+  <header class="dialog-head">
+    <h2 id="charactersTitle">角色预览</h2>
+    <form method="dialog"><button type="submit" class="icon-button" aria-label="关闭角色预览" autofocus>×</button></form>
+  </header>
+  <div class="portrait-gallery">
+    <p>形象与 AI 接口分别选择，角色状态通过比赛中的文字展示。</p>
+    <div class="portrait-cards"></div>
+  </div>
+</dialog>
+<dialog id="portraitDialog" class="lobby-dialog" aria-labelledby="portraitTitle">
+  <header class="dialog-head">
+    <h2 id="portraitTitle">完整立绘</h2>
+    <form method="dialog"><button type="submit" class="icon-button" aria-label="关闭完整立绘" autofocus>×</button></form>
+  </header>
+  <img class="full-portrait" alt="">
+</dialog>
+<dialog id="helpDialog" class="lobby-dialog" aria-labelledby="helpTitle">
+  <header class="dialog-head">
+    <h2 id="helpTitle">玩法与接入</h2>
+    <form method="dialog"><button type="submit" class="icon-button" aria-label="关闭玩法与接入" autofocus>×</button></form>
+  </header>
+  <div class="lobby-help">
+    <p id="helpStatus" role="status">正在加载说明…</p>
+  </div>
+</dialog>
 <dialog id="relayPictureDialog"><div class="dialog-head"><h2 id="relayPictureTitle">接龙画作</h2><button id="closeRelayPicture" class="icon-button" aria-label="关闭接龙大图">×</button></div><canvas id="relayPictureCanvas" width="1000" height="650" aria-label="接龙画作大图"></canvas></dialog>
 <dialog id="confirmDialog"><h2 id="confirmTitle"></h2><p id="confirmText"></p><div class="dialog-footer"><button id="confirmCancel" class="quiet">取消</button><button id="confirmYes" class="primary">确定</button></div></dialog>
 <div id="toast" class="toast" role="status" hidden></div>
@@ -35,4 +61,5 @@
   }
 </script>
 <script type="module" src="./app.mjs?v=avatars-1"></script>
+<script type="module" src="./lobby-dialogs.mjs"></script>
 </body></html>
