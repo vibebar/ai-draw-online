@@ -2,7 +2,7 @@ import {paint} from './drawing.mjs';
 import {playerLabel} from './characters.mjs';
 import {escapeText as esc,recapMarkup} from './conversation.mjs';
 import {banterMarkup} from './banter-view.mjs';
-import {exportSummaryImage} from './export-summary.mjs';
+import {bindSummaryExport} from './export-summary.mjs';
 import {openBattleReplay} from './replay.mjs';
 import {createPlayerAvatar} from './player-avatar.mjs';
 
@@ -43,6 +43,7 @@ function attemptMarkup(round,attempt,players){
 
 export function renderBattleSummary(container,game,act){
   const ranking=[...game.players].sort((a,b)=>b.total-a.total);
+  const playersById=new Map(game.players.map(player=>[player.id,player]));
   const score=ranking[0].total,winners=ranking.filter(p=>p.total===score);
   const draw=award(ranking,'drawScore','drawPossible'),guess=award(ranking,'guessScore','guessPossible');
   container.innerHTML=`<div class="results-head"><div><h1>比赛总结<span class="relay-toggle-all"><button type="button" data-relay-toggle-all="close">全部收起</button><button type="button" data-relay-toggle-all="open">全部展开</button></span></h1><p>${game.history.length} / ${game.total} 题 · ${game.players.length} 位选手</p></div>
@@ -58,11 +59,14 @@ export function renderBattleSummary(container,game,act){
         <td>${p.drawScore} / ${p.drawPossible}</td><td>${p.guessScore} / ${p.guessPossible}</td><td>${p.hits} / ${p.guessPossible/3}</td><td>${p.drawn}</td></tr>`).join('')}</tbody>
     </table></div>
     <h2 class="gallery-heading">每题的画作与猜词</h2>
-    <div class="battle-rounds">${game.history.map(round=>`<article class="battle-round">
-      <header class="battle-round-heading"><div><h3>第 ${round.index+1} 题 · ${esc(round.answer)}</h3><p>${esc(round.artistName)} 作画 · +${round.drawGain} 分</p></div><button type="button" class="relay-chain-toggle" data-battle-toggle aria-expanded="true">收起 ▴</button></header>
+    <div class="battle-rounds">${game.history.map(round=>{
+      const avatar=createPlayerAvatar(playersById.get(round.artistId));
+      avatar.setAttribute('aria-hidden','true');
+      return `<article class="battle-round">
+      <header class="battle-round-heading"><div><h3><span class="summary-player"><span>第 ${round.index+1} 题 · ${esc(round.answer)}</span>${avatar.outerHTML}</span></h3><p>${esc(round.artistName)} 作画 · +${round.drawGain} 分</p></div><button type="button" class="relay-chain-toggle" data-battle-toggle aria-expanded="true">收起 ▴</button></header>
       ${round.attempts.length?`<ol class="summary-attempts">${round.attempts.map(attempt=>attemptMarkup(round,attempt,game.players)).join('')}</ol>`:'<p class="summary-empty">本题暂无已完成的画作。</p>'}
       ${recapMarkup(round.recap)}${banterMarkup(round.banter,{controls:false})}
-    </article>`).join('')}</div>`;
+    </article>`;}).join('')}</div>`;
 
   const rounds=new Map(game.history.map(round=>[round.index,round]));
   for(const canvas of container.querySelectorAll('canvas[data-round]')){
@@ -71,13 +75,7 @@ export function renderBattleSummary(container,game,act){
   }
   container.querySelector('#homeButton').onclick=()=>act('home');
   container.querySelector('#replayButton').onclick=()=>openBattleReplay(game);
-  const exportButton=container.querySelector('#exportButton');
-  exportButton.onclick=async()=>{
-    exportButton.disabled=true;exportButton.textContent='生成中…';
-    try{await exportSummaryImage(game);exportButton.textContent='导出长图';}
-    catch(e){exportButton.textContent='导出失败，再试一次';}
-    finally{exportButton.disabled=false;}
-  };
+  bindSummaryExport(container.querySelector('#exportButton'),game);
   const setRound=(round,open)=>{round.classList.toggle('collapsed',!open);const t=round.querySelector('[data-battle-toggle]');t.setAttribute('aria-expanded',String(open));t.textContent=open?'收起 ▴':'展开 ▾';};
   container.onclick=e=>{
     const one=e.target.closest('[data-battle-toggle]');if(one){const r=one.closest('.battle-round');setRound(r,r.classList.contains('collapsed'));return;}

@@ -308,7 +308,7 @@ dialog.panel-drawer[open]{display:flex;flex-direction:column;animation:drawer-ri
 .results-head p { color: var(--muted); }
 .award .summary-award-winners { display: flex; flex-wrap: wrap; gap: 8px 12px; }
 .summary-player { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; vertical-align: middle; }
-.summary-award-winners .summary-player > span:last-child { overflow-wrap: anywhere; }
+.summary-player > span:not(.player-avatar) { min-width: 0; overflow-wrap: anywhere; }
 .battle-round {
   margin: 0 0 18px;
   padding: 20px;

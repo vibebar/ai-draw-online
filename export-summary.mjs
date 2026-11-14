@@ -1,4 +1,5 @@
 import {paint} from './drawing.mjs';
+import {createPlayerAvatar} from './player-avatar.mjs';
 
 // 把比赛总结画成一张长图，按题列出画画和猜词的过程。
 const W=1000,PAD=36,CARD_PAD=24,IMG_W=440,IMG_H=286,GAP=24;
@@ -32,13 +33,83 @@ function drawHeader(ctx,family){
   ctx.font=`bold 18px ${family}`;ctx.fillStyle='#3b2649';ctx.fillText('AI 你画我猜',PAD,46);
 }
 
-function layoutRelay(ctx,game,family,draw){
+async function loadAvatars(players){
+  const entries=await Promise.all(players.map(async player=>{
+    const avatar=createPlayerAvatar(player);
+    const portrait=avatar.querySelector('img');
+    const image=portrait||new Image();
+    if(!portrait){
+      const ghost=avatar.querySelector('svg');
+      ghost.setAttribute('xmlns','http://www.w3.org/2000/svg');
+      image.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(ghost.outerHTML);
+    }
+    try{await image.decode();return [player.id,{image,ghost:!portrait}];}
+    catch{return [player.id,null];}
+  }));
+  return new Map(entries);
+}
+
+function drawAvatar(ctx,avatar,x,y,size){
+  if(!avatar)return;
+  const {image,ghost}=avatar;
+  ctx.save();
+  ctx.beginPath();ctx.arc(x+size/2,y+size/2,size/2,0,Math.PI*2);ctx.clip();
+  ctx.fillStyle=ghost?'#fdebf0':'#eef1ff';ctx.fillRect(x,y,size,size);
+  if(ghost)ctx.drawImage(image,x+size*.16,y+size*.16,size*.68,size*.68);
+  else{
+    const crop=Math.min(image.naturalWidth,image.naturalHeight);
+    ctx.drawImage(image,(image.naturalWidth-crop)/2,(image.naturalHeight-crop)/2,crop,crop,x,y,size,size);
+  }
+  ctx.restore();
+  ctx.strokeStyle='#cbd6ea';ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(x+size/2,y+size/2,size/2,0,Math.PI*2);ctx.stroke();
+}
+
+function avatarRows(ctx,entries,width,{font,color,size,lineHeight},avatars){
+  const gap=8,entryGap=16;
+  const rows=[];
+  let row={items:[],width:0,height:0};
+  ctx.font=font;
+  for(const {id,label} of entries){
+    const avatar=avatars.get(id);
+    const reserved=avatar?size+gap:0;
+    const lines=wrap(ctx,label,width-reserved);
+    const textWidth=Math.max(...lines.map(line=>ctx.measureText(line).width));
+    const itemWidth=textWidth+reserved;
+    if(row.items.length&&row.width+entryGap+itemWidth>width){
+      rows.push(row);row={items:[],width:0,height:0};
+    }
+    const x=row.width+(row.items.length?entryGap:0);
+    row.items.push({avatar,lines,textWidth,x});
+    row.width=x+itemWidth;
+    row.height=Math.max(row.height,lines.length*lineHeight);
+  }
+  if(row.items.length)rows.push(row);
+  return {
+    height:rows.reduce((height,row)=>height+row.height,0),
+    paint(x,y){
+      ctx.font=font;ctx.textBaseline='middle';
+      for(const row of rows){
+        for(const item of row.items){
+          ctx.fillStyle=color;
+          item.lines.forEach((line,index)=>ctx.fillText(line,x+item.x,y+(index+.5)*lineHeight));
+          drawAvatar(ctx,item.avatar,x+item.x+item.textWidth+gap,y+(lineHeight-size)/2,size);
+        }
+        y+=row.height;
+      }
+    }
+  };
+}
+
+function layoutRelay(ctx,game,family,draw,avatars){
   const text=(t,x,y,font,color)=>{ctx.font=font;ctx.fillStyle=color;ctx.textBaseline='alphabetic';ctx.fillText(t,x,y);};
   const name=id=>game.players.find(p=>p.id===id)?.name||'未知选手';
   if(draw)drawHeader(ctx,family);
   let y=84;
   const COLG=20,cellW=(W-PAD*2-CARD_PAD*2-COLG)/2,cellH=Math.round(cellW*0.65);
   game.chains.forEach((chain,ci)=>{
+    const title=avatarRows(ctx,[{id:chain.ownerId,label:`${ci+1}. ${name(chain.ownerId)} 的接龙`}],W-2*(PAD+CARD_PAD),
+      {font:`bold 22px ${family}`,color:'#182443',size:30,lineHeight:34},avatars);
     const cells=[{label:'原始题目',kind:'origin',text:chain.answer}];
     chain.route.forEach((id,pos)=>{
       const step=chain.steps[pos],kind=pos%2?'猜词':'画图';
@@ -61,14 +132,15 @@ function layoutRelay(ctx,game,family,draw){
       rows.push({pair,h:Math.max(...pair.map(c=>c.h))+26});
     }
     const top=y;
-    const h=CARD_PAD+30+route.length*20+12+rows.reduce((n,r)=>n+r.h+12,0)+CARD_PAD-12;
+    const gridTop=top+CARD_PAD+title.height+route.length*20+12;
+    const h=gridTop-top+rows.reduce((n,r)=>n+r.h+12,0)+CARD_PAD-12;
     if(draw){
       ctx.fillStyle='#fff';ctx.strokeStyle='#ddd5f0';ctx.lineWidth=1.5;
       ctx.beginPath();ctx.roundRect(PAD,top,W-PAD*2,h,16);ctx.fill();ctx.stroke();
-      text(`${ci+1}. ${name(chain.ownerId)} 的接龙`,PAD+CARD_PAD,top+CARD_PAD+22,`bold 22px ${family}`,'#182443');
-      route.forEach((l,i)=>text(l,PAD+CARD_PAD,top+CARD_PAD+46+i*20,`14px ${family}`,'#72809a'));
+      title.paint(PAD+CARD_PAD,top+CARD_PAD);
+      route.forEach((l,i)=>text(l,PAD+CARD_PAD,top+CARD_PAD+title.height+16+i*20,`14px ${family}`,'#72809a'));
     }
-    let ry=top+CARD_PAD+30+route.length*20+12;
+    let ry=gridTop;
     for(const row of rows){
       row.pair.forEach((c,k)=>{
         const x=PAD+CARD_PAD+k*(cellW+COLG);
@@ -100,35 +172,39 @@ function layoutRelay(ctx,game,family,draw){
   return y+PAD-20;
 }
 
-function layout(ctx,game,family,draw){
+function layout(ctx,game,family,draw,avatars){
   const text=(s,x,y,font,color)=>{ctx.font=font;ctx.fillStyle=color;ctx.textBaseline='alphabetic';ctx.fillText(s,x,y);};
-  let y=0;
+  const innerW=W-2*(PAD+CARD_PAD),textX=PAD+CARD_PAD+IMG_W+GAP,textW=W-PAD-CARD_PAD-textX;
   if(draw)drawHeader(ctx,family);
-  y=84;
+  let y=84;
   // 冠军
   {
     const ranking=[...game.players].sort((a,b)=>b.total-a.total);
-    const best=ranking[0]?.total??0,champs=ranking.filter(p=>p.total===best).map(p=>p.name).join('、');
-    ctx.font=`bold 26px ${family}`;const nameLines=wrap(ctx,champs,W-PAD*2-CARD_PAD*2-90);
-    ctx.font=`14px ${family}`;const board=wrap(ctx,ranking.map((p,i)=>`${i+1}. ${p.name} ${p.total} 分`).join('　'),W-PAD*2-CARD_PAD*2);
-    const h=CARD_PAD+20+nameLines.length*34+8+board.length*20+CARD_PAD-8;
+    const best=ranking[0]?.total??0;
+    const champs=avatarRows(ctx,ranking.filter(p=>p.total===best).map(p=>({id:p.id,label:p.name})),innerW-90,
+      {font:`bold 26px ${family}`,color:'#314aa0',size:32,lineHeight:38},avatars);
+    const board=avatarRows(ctx,ranking.map((p,i)=>({id:p.id,label:`${i+1}. ${p.name} ${p.total} 分`})),innerW,
+      {font:`14px ${family}`,color:'#72809a',size:22,lineHeight:28},avatars);
+    const h=CARD_PAD+18+champs.height+8+board.height+CARD_PAD;
     if(draw){
       ctx.fillStyle='#fffdf6';ctx.strokeStyle='#e2c46a';ctx.lineWidth=1.5;
       ctx.beginPath();ctx.roundRect(PAD,y,W-PAD*2,h,16);ctx.fill();ctx.stroke();
       text('总冠军',PAD+CARD_PAD,y+CARD_PAD+8,`bold 13px ${family}`,'#a27b12');
-      let cy=y+CARD_PAD+8+30;
-      nameLines.forEach((l,i)=>{text(l,PAD+CARD_PAD,cy+i*34,`bold 26px ${family}`,'#314aa0');});
-      text(`${best} 分`,W-PAD-CARD_PAD-ctx.measureText(`${best} 分`).width,y+CARD_PAD+8+30,`bold 20px ${family}`,'#a27b12');
-      cy+=(nameLines.length-1)*34+26;
-      board.forEach((l,i)=>text(l,PAD+CARD_PAD,cy+i*20,`14px ${family}`,'#72809a'));
+      const cy=y+CARD_PAD+18;
+      champs.paint(PAD+CARD_PAD,cy);
+      ctx.font=`bold 20px ${family}`;
+      text(`${best} 分`,W-PAD-CARD_PAD-ctx.measureText(`${best} 分`).width,cy+26,`bold 20px ${family}`,'#a27b12');
+      board.paint(PAD+CARD_PAD,cy+champs.height+8);
     }
     y+=h+20;
   }
-  const innerW=W-PAD*2-CARD_PAD*2,textX=PAD+CARD_PAD+IMG_W+GAP,textW=W-PAD-CARD_PAD-textX;
   for(const round of game.history){
     const top=y;
+    const title=avatarRows(ctx,[{id:round.artistId,label:`第 ${round.index+1} 题 · ${round.answer}`}],innerW,
+      {font:`bold 22px ${family}`,color:'#182443',size:30,lineHeight:34},avatars);
     // 先量出这一题要多高
-    let h=CARD_PAD+30+20+14;
+    const attemptsTop=top+CARD_PAD+title.height+34;
+    let h=attemptsTop-top;
     const blocks=round.attempts.map(attempt=>{
       ctx.font=`13px ${family}`;
       const hint=attempt.hint?wrap(ctx,`公开提示 · ${attempt.hint}`,textW):[];
@@ -148,10 +224,10 @@ function layout(ctx,game,family,draw){
     if(draw){
       ctx.fillStyle='#fff';ctx.strokeStyle='#ddd5f0';ctx.lineWidth=1.5;
       ctx.beginPath();ctx.roundRect(PAD,top,W-PAD*2,h,16);ctx.fill();ctx.stroke();
-      text(`第 ${round.index+1} 题 · ${round.answer}`,PAD+CARD_PAD,top+CARD_PAD+22,`bold 22px ${family}`,'#182443');
-      text(`${round.artistName} 作画 · +${round.drawGain} 分`,PAD+CARD_PAD,top+CARD_PAD+46,`14px ${family}`,'#72809a');
+      title.paint(PAD+CARD_PAD,top+CARD_PAD);
+      text(`${round.artistName} 作画 · +${round.drawGain} 分`,PAD+CARD_PAD,top+CARD_PAD+title.height+16,`14px ${family}`,'#72809a');
     }
-    let by=top+CARD_PAD+30+20+14;
+    let by=attemptsTop;
     for(const b of blocks){
       if(draw){
         text(`第 ${b.attempt.turn} 版画作`,PAD+CARD_PAD,by+16,`bold 14px ${family}`,'#6a4bd0');
@@ -172,7 +248,7 @@ function layout(ctx,game,family,draw){
       }
       by+=b.height+14;
     }
-    if(!blocks.length&&draw)text('本题暂无已完成的画作。',PAD+CARD_PAD,top+CARD_PAD+30+20+34,`14px ${family}`,'#72809a');
+    if(!blocks.length&&draw)text('本题暂无已完成的画作。',PAD+CARD_PAD,attemptsTop+20,`14px ${family}`,'#72809a');
     y=top+h+20;
   }
   return y+PAD-20;
@@ -180,23 +256,35 @@ function layout(ctx,game,family,draw){
 
 export async function buildSummaryImage(game){
   try{await document.fonts.ready;}catch{}
+  const avatars=await loadAvatars(game.players);
   const family=getComputedStyle(document.body).fontFamily||'sans-serif';
   const probe=document.createElement('canvas').getContext('2d');
   const run=game.chains?layoutRelay:layout;
-  const height=Math.ceil(run(probe,game,family,false));
+  const height=Math.ceil(run(probe,game,family,false,avatars));
   const scale=Math.min(2,30000/height);
   const canvas=document.createElement('canvas');canvas.width=Math.round(W*scale);canvas.height=Math.round(height*scale);
   const ctx=canvas.getContext('2d');ctx.scale(scale,scale);
   ctx.fillStyle='#faf8ff';ctx.fillRect(0,0,W,height);
-  run(ctx,game,family,true);
+  run(ctx,game,family,true,avatars);
   return canvas;
 }
 
-export async function exportSummaryImage(game){
+export function bindSummaryExport(button,game){
+  button.onclick=async()=>{
+    button.disabled=true;button.textContent='生成中…';
+    try{await exportSummaryImage(game);button.textContent='导出长图';}
+    catch{button.textContent='导出失败，再试一次';}
+    finally{button.disabled=false;}
+  };
+}
+
+async function exportSummaryImage(game){
+  const date=new Date(),pad=n=>String(n).padStart(2,'0');
+  const stamp=`${pad(date.getMonth()+1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
   const canvas=await buildSummaryImage(game);
-  const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
-  if(!blob)throw new Error('生成图片失败');
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.88));
+  if(blob?.type!=='image/jpeg')throw new Error('生成 JPG 失败');
   const url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=game.chains?'你画我猜-接龙总结.png':'你画我猜-比赛总结.png';document.body.append(a);a.click();a.remove();
+  a.href=url;a.download=`aidraw-${game.chains?'接龙':'比赛'}-${stamp}.jpg`;document.body.append(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),4000);
 }
