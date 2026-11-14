@@ -6,7 +6,7 @@ import {CELEBRATION_MS} from './avatar-state.mjs';
 import {createPlayerSeats} from './player-seats.mjs';
 import {createConversation,recapMarkup} from './conversation.mjs';
 import {drawingTransition,playbackFactor,strokeDuration,animateProgress,partialStroke} from './drawing-playback.mjs';
-import {playerLabel,playerModelLabel,CHARACTER_MAP} from './characters.mjs';
+import {CHARACTER_MAP} from './characters.mjs';
 import {mountSettings} from './settings-view.mjs';
 import {relayActionMarkup,relayStageMarkup,renderRelayResults,updateRelayReviews} from './relay-view.mjs';
 import {renderBattleSummary} from './battle-summary.mjs';
@@ -55,7 +55,7 @@ function renderLobby(){
   // ChatGPT、Gemini、DeepSeek 没连接时显示灰色小框作为示例；连接好的 AI 亮起来，按这三家在前的顺序排列。
   const rank=p=>{const i=LOBBY_PREVIEW.indexOf(p.characterId);return i<0?LOBBY_PREVIEW.length:i;};
   const lit=readyPlayers.slice().sort((a,b)=>rank(a)-rank(b));
-  const chip=p=>`<button class="chip ${selected.has(p.id)?'selected':''}" data-player="${esc(p.id)}" aria-pressed="${selected.has(p.id)}" title="${esc(playerLabel(p))}" style="--p-color:${esc(p.color)}"><span class="chip-dot"></span>${esc(p.name)}</button>`;
+  const chip=p=>`<button class="chip ${selected.has(p.id)?'selected':''}" data-player="${esc(p.id)}" aria-pressed="${selected.has(p.id)}" style="--p-color:${esc(p.color)}"><span class="chip-dot"></span>${esc(p.name)}</button>`;
   const grey=id=>`<button class="chip off" data-connect="${id}" title="${esc(CHARACTER_MAP[id].name)} 还没连接，点一下去连接">${esc(CHARACTER_MAP[id].name)}</button>`;
   const items=[...LOBBY_PREVIEW.flatMap(id=>{const own=lit.filter(p=>p.characterId===id);return own.length?own.map(chip):[grey(id)];}),...lit.filter(p=>rank(p)===LOBBY_PREVIEW.length).map(chip)];
   $('players').innerHTML=`<button class="chip human ${human?'selected':''}" data-human="1" aria-pressed="${human}">✦ 你 <small>人类</small></button>`+items.join('')+`<button class="chip add-ai" data-connect="">＋ 添加 AI</button>`;
@@ -179,7 +179,10 @@ function renderRelayAction(){
   const g=game,task=g.relay.myTask,key=JSON.stringify(['relay',g.id,g.index,g.phase,task?.status,Object.values(g.results).filter(r=>r.status==='error').length]);if(actionKey===key)return;actionKey=key;
   const previous=$('relayGuessInput'),draft=previous?.value||'',focused=previous&&document.activeElement===previous;
   $('actionPanel').innerHTML=relayActionMarkup(g);
-  const form=$('relayGuessForm');if(form){const input=$('relayGuessInput');input.value=draft;if(focused)input.focus();form.onsubmit=e=>{e.preventDefault();const guess=input.value.trim();if(!guess)return;form.querySelector('button').disabled=true;act('relay-submit',{stage:g.index,chainId:task.chainId,guess});};}
+  const form=$('relayGuessForm');if(form){const input=$('relayGuessInput');input.value=draft;if(focused)input.focus();form.onsubmit=e=>{e.preventDefault();const guess=input.value.trim();if(!guess)return;form.querySelector('button').disabled=true;submitRelay({stage:g.index,chainId:task.chainId,guess},'猜词已提交。');};}
+}
+async function submitRelay(data,message){
+  if(await act('relay-submit',data))toast(message);
 }
 async function animateDrawing(shapes,previous=[]){
   
@@ -247,8 +250,12 @@ function renderAction(){
 $('actionPanel').onclick=async e=>{const b=e.target.closest('[data-action]');if(!b)return;const a=b.dataset.action;
   if(game?.mode==='relay'){
     const g=game,task=g.relay.myTask,extra={stage:g.index,chainId:task?.chainId};
-    if(a==='relay-draw-submit'){if(currentStroke||inFlight)return;if(!localShapes.length)return toast('先在画布上画几笔。');b.disabled=true;await act('relay-submit',{...extra,shapes:localShapes});}
-    else if(a==='relay-pass'){b.disabled=true;await act('relay-submit',{...extra,pass:true});}
+    if(a==='relay-draw-submit'){
+      if(currentStroke)return toast('请先结束当前笔画。');
+      if(!localShapes.length)return toast('先在画布上画几笔。');
+      b.disabled=true;await submitRelay({...extra,shapes:localShapes},'画作已提交。');
+    }
+    else if(a==='relay-pass'){b.disabled=true;await submitRelay({...extra,pass:true},'这一棒已留空。');}
     else {b.disabled=true;await act(a,extra);}
     if(b.isConnected)b.disabled=false;return;
   }

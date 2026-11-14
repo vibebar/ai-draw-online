@@ -1,7 +1,7 @@
 
 import {seatCharacter,seatPresentation,tablePlaces} from './seat-presentation.mjs';
 import {latestSpeech,messageBody,messageLabel} from './conversation.mjs';
-import {playerModelLabel,playerLabel} from './characters.mjs';
+import {playerLabel} from './characters.mjs';
 
 
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -16,7 +16,7 @@ export function createPlayerSeats(container,{onPreparation=()=>{}}={}){
   function mount(player,character,home){
     const card=document.createElement('article');
     card.className=player.human?'player-seat human-seat':'player-seat ai-seat';card.dataset.playerId=player.id;
-    card.innerHTML='<header><div class="seat-identity"><strong class="seat-name"></strong><small class="seat-model"></small></div><span class="seat-score"></span></header><div class="seat-stage"></div><div class="seat-dialogue" hidden></div><div class="seat-caption"><span class="seat-role"></span><span class="seat-status"></span></div><div class="seat-feedback"></div>';
+    card.innerHTML='<header><div class="seat-identity"><strong class="seat-name"></strong></div><span class="seat-score"></span></header><div class="seat-stage"></div><div class="seat-dialogue" hidden></div><div class="seat-caption"><span class="seat-role"></span><span class="seat-status"></span></div><div class="seat-feedback"></div>';
     const seat={card,characterId:character?.id,avatarUrl:character?.avatarUrl,feedbackKey:'',status:'loading'};seats.set(player.id,seat);home.append(card);
     if(character){
       const stage=card.querySelector('.seat-stage');
@@ -61,8 +61,6 @@ export function createPlayerSeats(container,{onPreparation=()=>{}}={}){
       card.setAttribute('aria-label',`${playerLabel(player)} · ${presentation.role}`);
       card.dataset.state=presentation.state;card.classList.toggle('is-artist',presentation.artist);card.classList.toggle('solved',!!r?.solved);
       card.querySelector('.seat-name').textContent=player.name;
-      card.querySelector('.seat-model').textContent=playerModelLabel(player);
-      card.querySelector('.seat-model').hidden=!!player.human;
       card.querySelector('.seat-score').textContent=game.mode==='relay'?`第 ${game.index+1} 棒`:`${presentation.total} 分`;
       card.querySelector('.seat-role').textContent=(player.human?'你 · ':'')+presentation.role;
       card.querySelector('.seat-status').textContent=presentation.status;

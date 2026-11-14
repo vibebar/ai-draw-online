@@ -18,8 +18,7 @@ export function portraitPage(id){
   url.searchParams.set('character',id);
   return url.href;
 }
-export const playerModelLabel=player=>player?.human?'':String(player?.model||'').trim()||'默认型号（未指定）';
-export const playerLabel=player=>player?.human?player.name:`${player?.name||'未知选手'} · ${playerModelLabel(player)}`;
+export const playerLabel=player=>player?.name||'未知选手';
 export function resolveCharacter(player={}){
   if(player.human||player.characterId==='none')return null;
   if(CHARACTER_MAP[player.characterId])return CHARACTER_MAP[player.characterId];

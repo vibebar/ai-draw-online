@@ -292,8 +292,7 @@ dialog.panel-drawer[open]{display:flex;flex-direction:column;animation:drawer-ri
 .hint-mode-row{align-items:flex-start;padding:8px 0}.hint-mode-row>.row-label{padding-top:11px}.hint-mode-content{min-width:0}.hint-mode-help{font-size:13px;color:#64718b;margin:9px 0 0;line-height:1.6}
 
 /* Keep the configured model readable without renaming the character. */
-.seat-identity{min-width:0;flex:1}.seat-identity .seat-name{display:block}.seat-model{display:block;font-size:11px;line-height:1.35;color:#71839a;overflow-wrap:anywhere;margin-top:4px}.player-seat>header{align-items:flex-start}.seat-score{flex-shrink:0}.chip-model{overflow-wrap:anywhere;max-width:280px}.chat-model{color:#78899b;overflow-wrap:anywhere}.relay-review-model{display:block;overflow-wrap:anywhere;font-size:12px;line-height:1.45;color:#72889b;margin-top:5px}.showcase-progress .current .relay-review-model{color:#e7f2f8}
-@media(min-width:2000px){.seat-model{font-size:14px}.relay-review-model{font-size:15px}}
+.seat-identity{min-width:0;flex:1}.seat-identity .seat-name{display:block}.player-seat>header{align-items:flex-start}.seat-score{flex-shrink:0}.chip-model{overflow-wrap:anywhere;max-width:280px}
 .seat-preload-parking{position:fixed;left:-10000px;top:0;width:320px;visibility:hidden;pointer-events:none;contain:layout style paint}.seat-preload-parking .player-seat{position:relative!important;display:block!important;width:320px!important;height:350px!important}.seat-preload-parking .seat-stage{height:290px!important}.seat-preload-parking img{width:100%!important;height:100%!important}
 .lobby-preparation{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 0 0;color:#71839a;font-size:13px;line-height:1.6}.lobby-preparation[data-ready="true"]{color:#397356}.lobby-preparation button{font-size:12px;padding:5px 10px}
 .banter-setting{align-items:flex-start}.banter-setting>.row-label{padding-top:5px}.round-banter{margin:18px 0;padding:18px;border:1px solid #ebc7aa;border-radius:16px;background:linear-gradient(135deg,#fff7ed,#fffdf9);color:#344456}.banter-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.banter-heading h3{margin:0!important;color:#a34e28}.banter-heading>span{font-size:12px;color:#91694f}.banter-exchange:empty{display:none}.banter-line{margin:14px 20px 8px 0;padding:12px 15px;border-radius:12px;border:1px solid #ecd6c3;background:#fff}.banter-line header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.banter-line header>span{font-size:12px;color:#7a8596}.banter-line p{margin:8px 0 0!important;color:#344456!important;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere}.banter-reply{margin-left:20px;margin-right:0;background:#edf6fb;border-color:#cbdce9}.banter-status{font-size:13px;color:#8b6044!important}.round-banter form label{display:block;font-weight:bold;margin-bottom:8px}.banter-input-row{display:flex;gap:8px}.banter-input-row input{min-width:0;flex:1;padding:11px;border:1px solid #d4b69b;border-radius:10px;background:white;color:#22344c}.round-banter .button-row{margin-top:12px}.round-banter button{white-space:normal}.chat-banter{border-left-color:#ca8550}.seat-dialogue[data-kind="banter"]{border-color:#ca8550;background:#fff8ed}
@@ -419,7 +418,6 @@ dialog>.dialog-head{position:sticky;top:calc(-1 * var(--dialog-pad));z-index:5;m
 #game .human-seat .human-mark{grid-column:1;grid-row:1/3;width:52px;height:52px;display:grid;place-items:center;border-radius:10px;background:#fdebf0;color:#d62b52;font-size:22px;position:static}
 #game .seat-identity{min-width:0;display:flex;align-items:baseline;gap:6px}
 #game .seat-name{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#game .seat-model{font-size:11px;color:#9a93a8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #game .seat-caption{grid-column:2;grid-row:2;min-height:0;padding:2px 0 0;border:0;background:none;font-size:12px;gap:6px}
 #game .seat-dialogue{grid-column:1/-1;position:static;margin:8px 0 0;max-height:none;transform:none;width:auto}
 #game .seat-dialogue::before{display:none}
@@ -445,11 +443,10 @@ dialog>.dialog-head{position:sticky;top:calc(-1 * var(--dialog-pad));z-index:5;m
   #game .player-seat>header{flex-direction:column;align-items:center;gap:0;width:100%}
   #game .seat-identity{justify-content:center;width:100%}
   #game .seat-name{font-size:12px;max-width:100%}
-  #game .seat-model,#game .seat-role,#game .seat-dialogue{display:none!important}
+  #game .seat-role,#game .seat-dialogue{display:none!important}
   #game .seat-score{font-size:11px}
   #game .seat-caption{justify-content:center;padding:0;font-size:11px;line-height:1.3}
 }
-#game .seat-model{display:none!important}
 #game .guessers{align-items:stretch}
 #game .player-seat{width:auto}
 /* 对局时页面用满整个宽度 */

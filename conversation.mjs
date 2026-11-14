@@ -1,4 +1,3 @@
-import {playerModelLabel} from './characters.mjs';
 export const escapeText=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const esc=escapeText;
 export const matchNote=match=>({'idiom-order':'四个字齐全，顺序不同也算对','idiom-three':'三个字位置正确，也算对'})[match]||'';
@@ -37,7 +36,7 @@ export function createConversation(panel){
     for(const m of visible){
       let node=nodes.get(m.id);
       if(!node){node=document.createElement('article');node.className=`chat-message chat-${m.kind}`;node.dataset.messageId=m.id;node.style.setProperty('--speaker',/^#[0-9a-f]{6}$/i.test(m.color||'')?m.color:'#67738f');
-        node.innerHTML=`<header><span class="chat-round">第 ${(m.chainIndex??m.index)+1} ${m.chainIndex!=null?'条链':m.mode==='relay'?'棒':'题'}${['guess','hint'].includes(m.kind)?` · 第 ${m.turn} 轮`:''}</span><strong>${esc(m.name)}</strong>${m.model?`<small class="chat-model">${esc(m.model)}</small>`:''}<span class="chat-kind">${esc(messageLabel(m))}</span></header>${messageBody(m)}`;nodes.set(m.id,node);
+        node.innerHTML=`<header><span class="chat-round">第 ${(m.chainIndex??m.index)+1} ${m.chainIndex!=null?'条链':m.mode==='relay'?'棒':'题'}${['guess','hint'].includes(m.kind)?` · 第 ${m.turn} 轮`:''}</span><strong>${esc(m.name)}</strong><span class="chat-kind">${esc(messageLabel(m))}</span></header>${messageBody(m)}`;nodes.set(m.id,node);
       }
       // Previously private messages may be revealed later: insert them at their original place.
       const expected=previous?previous.nextElementSibling:log.firstElementChild;if(node!==expected)log.insertBefore(node,expected);previous=node;
@@ -64,7 +63,7 @@ export function createConversation(panel){
   function update(game){
     panel.hidden=!game;if(!game)return;
     if(gameId!==game.id){gameId=game.id;nodes.clear();log.replaceChildren();key='';filterKey='';filter.value='guess';follow.checked=true;newButton.hidden=true;}
-    messages=(game.conversation||[]).map(m=>{const p=game.players?.find(p=>p.id===m.playerId);return {...m,model:p&&!p.human?playerModelLabel(p):''};});render();
+    messages=game.conversation||[];render();
   }
   return {update};
 }

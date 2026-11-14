@@ -2,7 +2,7 @@ import {exportSummaryImage} from './export-summary.mjs';
 import {openRelayReplay} from './replay.mjs';
 import {paint} from './drawing.mjs';
 import {escapeText as esc} from './conversation.mjs';
-import {playerLabel,playerModelLabel} from './characters.mjs';
+import {playerLabel} from './characters.mjs';
 import {banterMarkup,captureBanterDraft,restoreBanterDraft} from './banter-view.mjs';
 
 function drawingCaption(chain,position,playerName){
@@ -20,7 +20,7 @@ export function relayActionMarkup(g){
   if(g.phase==='relay-pass')return `<h3>大家都交卷了</h3><p>${g.index+1===g.total?'最后一棒完成，马上展开所有接龙。':'图和词已经封好，马上一起传给下一位。'}</p><div class="relay-wait">✉ 统一传递中</div>`;
   if(!task)html='<h3>正在旁观接龙</h3><p>所有选手正在同一棒行动。为保留最后揭晓的乐趣，中途只显示交卷进度。</p>';
   else if(task.status==='skipped')html='<h3>这一棒留空了</h3><p>本链没有可继续传递的内容，等待其他选手完成。</p>';
-  else if(task.status==='submitted')html=`<h3>你的这一棒已封好</h3><p>${task.kind==='draw'?'画作已提交。':`你写下了「${esc(task.submitted?.text||'')}」。`}等所有人交卷，再一起传递。</p><div class="relay-wait">✓ 已交卷 · 等待大家</div>`;
+  else if(task.status==='submitted')html=`<h3>${task.kind==='draw'?'画作已提交':'猜词已提交'}</h3>${task.kind==='guess'?`<p>你写下了「${esc(task.submitted?.text||'')}」。</p>`:''}<div class="relay-wait">等待其他选手交卷</div>`;
   else if(task.status==='working')html='<h3>正在封好你的作品…</h3>';
   else if(task.kind==='draw')html=`<h3>${g.index===0?'画出你的起始题目':'只画收到的词语'}</h3><p>${g.index===0?'这个词只有你看得到。':'上一位写了什么，就按什么画，不必猜原题。'}不要写文字提示。</p><button class="primary" data-action="relay-draw-submit">画好了，封好传递</button><button class="relay-pass-button" data-action="relay-pass">这一棒留空</button><small>留空后，这条链接下来的棒次也会留空。</small>`;
   else html=`<h3>${g.category==='成语'?'给下一位写一个四字成语':'给下一位写一个词'}</h3><p>${g.category==='成语'?'本局题库：成语。请按画面猜一个四字成语。':g.category?`本局题库：${esc(g.category)}。`:''}只看上一棒的画，不显示原题或更早的词语。</p><form id="relayGuessForm" class="guess-form"><input id="relayGuessInput" maxlength="80" aria-label="你的接龙词语" placeholder="${g.category==='成语'?'这幅画对应哪个四字成语？':'它画的是什么？'}" autocomplete="off"><button type="submit">封好传递</button></form><button class="relay-pass-button" data-action="relay-pass">这一棒留空</button><small>猜偏了也照传，最后一起看。</small>`;
@@ -30,7 +30,7 @@ export function relayActionMarkup(g){
 export function relayStageMarkup(g){return `<div class="relay-progress-copy"><strong>第 ${g.index+1} 棒 · 全员${g.relay.kind==='draw'?'画图':'猜词'}</strong><span>${g.relay.done} / ${g.players.length} 已交卷</span></div><div class="relay-stage-track" aria-label="接龙进度">${Array.from({length:g.total},(_,i)=>`<span class="${i<g.index?'done':i===g.index?'current':''}" aria-label="第 ${i+1} 棒 ${i%2?'猜词':'画图'}">${i<g.index?'✓':i+1}<small>${i%2?'猜':'画'}</small></span>`).join('')}</div>`;}
 
 export function renderRelayResults(container,g,act){
-  const name=id=>{const p=g.players.find(p=>p.id===id);return p?playerLabel(p):'未知选手';};
+  const name=id=>playerLabel(g.players.find(p=>p.id===id));
   const count=g.chains.reduce((n,c)=>n+c.steps.filter(Boolean).length,0);
   container.innerHTML=`<div class="results-head"><div><h1>接龙总结<span class="relay-toggle-all"><button type="button" data-relay-toggle-all="close">全部收起</button><button type="button" data-relay-toggle-all="open">全部展开</button></span></h1>
     <p>${g.players.length} 位选手 · ${g.chains.length} 条链 · ${count} / ${g.total*g.chains.length} 棒已交卷</p></div>
@@ -74,7 +74,6 @@ export function renderRelayResults(container,g,act){
 
 
 const name=(g,id)=>g.players.find(p=>p.id===id)?.name||'未知选手';
-const modelBadge=(g,id)=>{const p=g.players.find(p=>p.id===id);return p&&!p.human?`<small class="relay-review-model">${esc(playerModelLabel(p))}</small>`:'';};
 function ballotSummary(g,b){
   if(!b?.verdict)return '';
   const v=b.verdict,culprits=b.culprits;
@@ -84,10 +83,10 @@ function ballotSummary(g,b){
 function voteRows(g,votes,kind,revealed=false){
   return `<div class="relay-review-voters">${g.players.map(p=>{const v=votes[p.id]||{status:'waiting'},status={waiting:p.human?'等你投票':'等待投票',working:'正在投票…',queued:'排队中…',error:'连接失败',submitted:'已投票',abstained:'弃权'}[v.status];
     const choice=revealed&&v.status==='submitted'?(kind==='pass'?v.pass?'通过':'不通过':name(g,v.targetId)):status;
-    return `<article class="relay-review-voter ${v.status}"><strong>${esc(p.name)}</strong>${modelBadge(g,p.id)}<span>${esc(choice)}</span>${revealed&&v.reason?`<p>${esc(v.reason)}</p>`:v.error?`<p>${esc(v.error)}</p>`:''}</article>`;
+    return `<article class="relay-review-voter ${v.status}"><strong>${esc(p.name)}</strong><span>${esc(choice)}</span>${revealed&&v.reason?`<p>${esc(v.reason)}</p>`:v.error?`<p>${esc(v.error)}</p>`:''}</article>`;
   }).join('')}</div>`;
 }
-function reflectionRows(g,b){return `<div class="relay-review-voters relay-review-reflections">${g.players.map(p=>{const entry=b.reflections?.[p.id]||{status:'optional'},text=entry.text||entry.error||({optional:'还没留言',working:'正在想通关感言…',queued:'感言排队中…',waiting:'等待感言'}[entry.status])||'未留言';return `<article class="relay-review-voter ${esc(entry.status)}"><strong>${esc(p.name)}</strong>${modelBadge(g,p.id)}<p>${esc(text)}</p></article>`;}).join('')}</div>`;}
+function reflectionRows(g,b){return `<div class="relay-review-voters relay-review-reflections">${g.players.map(p=>{const entry=b.reflections?.[p.id]||{status:'optional'},text=entry.text||entry.error||({optional:'还没留言',working:'正在想通关感言…',queued:'感言排队中…',waiting:'等待感言'}[entry.status])||'未留言';return `<article class="relay-review-voter ${esc(entry.status)}"><strong>${esc(p.name)}</strong><p>${esc(text)}</p></article>`;}).join('')}</div>`;}
 function relayVoteRecord(g,b){return b?.verdict?`<div class="relay-review-record">${ballotSummary(g,b)}${b.verdict.automatic?reflectionRows(g,b):`<details><summary>查看每位选手的投票与理由</summary><h4>通过 / 不通过</h4>${voteRows(g,b.passVotes,'pass',true)}${b.culprits?`<h4>最大害群之马</h4>${voteRows(g,b.culpritVotes,'culprit',true)}`:''}</details>`}</div>`:'';}
 function reflectionControls(g,b){
   if(!b.verdict?.automatic)return '';
