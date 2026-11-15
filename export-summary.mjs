@@ -385,29 +385,19 @@ export async function buildSummaryImage(game,level='process'){
   return canvas;
 }
 
-async function downloadSummary(button,game,level){
-  button.disabled=true;button.textContent='生成中…';
-  try{await exportSummaryImage(game,level);button.textContent='导出长图';}
-  catch{button.textContent='导出失败，再试一次';}
-  finally{button.disabled=false;}
-}
-
-export function bindSummaryExport(button,game,getGame=()=>game){
-  if(!game.chains){
-    button.onclick=()=>downloadSummary(button,game);
-    return;
-  }
-  const dialog=document.getElementById('relayExportDialog');
-  button.setAttribute('aria-haspopup','dialog');
-  button.onclick=()=>{
-    dialog.returnValue='';
-    dialog.onclose=()=>{
-      const level=dialog.returnValue;
-      if(!['process','assessment','full'].includes(level))return;
-      const current=getGame();
-      if(current?.id===game.id)downloadSummary(button,current,level);
-    };
-    dialog.showModal();
+export function bindSummaryExport(button,game,{getGame=()=>game,levelSelect}={}){
+  button.onclick=async()=>{
+    const current=getGame();
+    if(!current||current.id!==game.id)return;
+    const level=levelSelect?.value;
+    button.disabled=true;button.textContent='生成中…';
+    if(levelSelect)levelSelect.disabled=true;
+    try{await exportSummaryImage(current,level);button.textContent='导出长图';}
+    catch{button.textContent='导出失败，再试一次';}
+    finally{
+      button.disabled=false;
+      if(levelSelect)levelSelect.disabled=false;
+    }
   };
 }
 

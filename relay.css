@@ -74,17 +74,9 @@
 .relay-toggle-all{display:inline-flex;gap:6px;margin-left:12px;vertical-align:middle}
 .relay-chain.collapsed>:not(.relay-chain-heading){display:none}
 
-#relayExportDialog { width: min(460px, calc(100% - 32px)); }
-#relayExportDialog .dialog-head h2 { margin: 0; font-size: 20px; }
-#relayExportDialog .dialog-head form { margin: 0; flex: none; }
-.relay-export-options { display: grid; gap: 8px; }
-.relay-export-options > button {
-  display: grid;
-  gap: 3px;
-  text-align: left;
-  padding: 11px 14px;
-}
-.relay-export-options > button:hover { background: #f6f2ff; }
-.relay-export-options small { color: #55647a; font-size: 13px; line-height: 1.5; }
+.relay-results-actions { flex-wrap: wrap; }
+.relay-export-controls { display: inline-flex; align-items: stretch; gap: 6px; max-width: 100%; }
+.relay-export-controls button { white-space: nowrap; }
+.relay-export-controls select { font-size: 13px; border-radius: 9px; padding: 8px 6px 8px 9px; }
 .relay-chain.collapsed .relay-chain-heading{padding-bottom:14px}
 .results-head h1 .relay-toggle-all{margin-left:16px;font-size:14px;font-weight:normal;vertical-align:middle}

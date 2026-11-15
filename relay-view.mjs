@@ -35,7 +35,18 @@ export function renderRelayResults(container,g,act,getGame){
   const count=g.chains.reduce((n,c)=>n+c.steps.filter(Boolean).length,0);
   container.innerHTML=`<div class="results-head"><div><h1>接龙总结<span class="relay-toggle-all"><button type="button" data-relay-toggle-all="close">全部收起</button><button type="button" data-relay-toggle-all="open">全部展开</button></span></h1>
     <p>${g.players.length} 位选手 · ${g.chains.length} 条链 · ${count} / ${g.total*g.chains.length} 棒已交卷</p></div>
-    <div class="results-actions"><button id="relayReplayButton">回放</button><button id="relayExportButton">导出长图</button><button class="primary" id="relayHomeButton">回到主页</button></div></div>
+    <div class="results-actions relay-results-actions">
+      <button id="relayReplayButton">回放</button>
+      <div class="relay-export-controls">
+        <button id="relayExportButton" type="button">导出长图</button>
+        <select id="relayExportLevel" aria-label="接龙长图导出档位">
+          <option value="process">极简过程版</option>
+          <option value="assessment">过程＋判定版</option>
+          <option value="full">完整互动版</option>
+        </select>
+      </div>
+      <button class="primary" id="relayHomeButton">回到主页</button>
+    </div></div>
     <div class="relay-chains">${g.chains.map((chain,i)=>{
     const owner=g.players.find(p=>p.id===chain.ownerId),avatar=createPlayerAvatar(owner);
     avatar.setAttribute('aria-hidden','true');
@@ -61,7 +72,9 @@ export function renderRelayResults(container,g,act,getGame){
   container.querySelector('#relayReplayButton').onclick=()=>openRelayReplay(g);
   // 接龙玩完后自动进入回放，每局只自动播一次。
   if(container.dataset.replayGame!==String(g.id)){container.dataset.replayGame=String(g.id);openRelayReplay(g);}
-  bindSummaryExport(container.querySelector('#relayExportButton'),g,getGame);
+  bindSummaryExport(container.querySelector('#relayExportButton'),g,{
+    getGame,levelSelect:container.querySelector('#relayExportLevel')
+  });
   container.onclick=e=>{
     const setChain=(chain,open)=>{chain.classList.toggle('collapsed',!open);const t=chain.querySelector('[data-relay-toggle]');t.setAttribute('aria-expanded',String(open));t.textContent=open?'收起 ▴':'展开 ▾';};
     const one=e.target.closest('[data-relay-toggle]');if(one){const chain=one.closest('.relay-chain');setChain(chain,chain.classList.contains('collapsed'));return;}
