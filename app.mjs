@@ -289,7 +289,7 @@ const endStroke=()=>{currentStroke=null;};canvas.onpointerup=endStroke;canvas.on
 function renderResults(){
   if(resultKey!==game.id){
     resultKey=game.id;
-    if(game.mode==='relay')renderRelayResults($('results'),game,act);
+    if(game.mode==='relay')renderRelayResults($('results'),game,act,()=>game);
     else renderBattleSummary($('results'),game,act);
     window.scrollTo({top:0,behavior:'instant'});
   }

@@ -30,7 +30,7 @@ export function relayActionMarkup(g){
 }
 export function relayStageMarkup(g){return `<div class="relay-progress-copy"><strong>第 ${g.index+1} 棒 · 全员${g.relay.kind==='draw'?'画图':'猜词'}</strong><span>${g.relay.done} / ${g.players.length} 已交卷</span></div><div class="relay-stage-track" aria-label="接龙进度">${Array.from({length:g.total},(_,i)=>`<span class="${i<g.index?'done':i===g.index?'current':''}" aria-label="第 ${i+1} 棒 ${i%2?'猜词':'画图'}">${i<g.index?'✓':i+1}<small>${i%2?'猜':'画'}</small></span>`).join('')}</div>`;}
 
-export function renderRelayResults(container,g,act){
+export function renderRelayResults(container,g,act,getGame){
   const name=id=>playerLabel(g.players.find(p=>p.id===id));
   const count=g.chains.reduce((n,c)=>n+c.steps.filter(Boolean).length,0);
   container.innerHTML=`<div class="results-head"><div><h1>接龙总结<span class="relay-toggle-all"><button type="button" data-relay-toggle-all="close">全部收起</button><button type="button" data-relay-toggle-all="open">全部展开</button></span></h1>
@@ -61,7 +61,7 @@ export function renderRelayResults(container,g,act){
   container.querySelector('#relayReplayButton').onclick=()=>openRelayReplay(g);
   // 接龙玩完后自动进入回放，每局只自动播一次。
   if(container.dataset.replayGame!==String(g.id)){container.dataset.replayGame=String(g.id);openRelayReplay(g);}
-  bindSummaryExport(container.querySelector('#relayExportButton'),g);
+  bindSummaryExport(container.querySelector('#relayExportButton'),g,getGame);
   container.onclick=e=>{
     const setChain=(chain,open)=>{chain.classList.toggle('collapsed',!open);const t=chain.querySelector('[data-relay-toggle]');t.setAttribute('aria-expanded',String(open));t.textContent=open?'收起 ▴':'展开 ▾';};
     const one=e.target.closest('[data-relay-toggle]');if(one){const chain=one.closest('.relay-chain');setChain(chain,chain.classList.contains('collapsed'));return;}
