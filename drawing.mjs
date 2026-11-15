@@ -15,4 +15,10 @@ export function drawShape(ctx, s) {
   if (s.fill && s.fill !== 'none')ctx.fill(); if(s.color !== 'none') ctx.stroke(); ctx.restore();
 }
 export function paint(canvas, shapes) { const c=canvas.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,canvas.width,canvas.height);c.save();c.scale(canvas.width/W,canvas.height/H);shapes.forEach(s=>drawShape(c,s));c.restore(); }
-export function png(shapes) { const c=document.createElement('canvas');c.width=W;c.height=H;paint(c,shapes);return c.toDataURL('image/png'); }
+export function png(shapes,width=W) {
+  const canvas=document.createElement('canvas');
+  canvas.width=width;canvas.height=width*H/W;
+  paint(canvas,shapes);
+  return canvas.toDataURL('image/png');
+}
+export const guessPng=shapes=>png(shapes,640);

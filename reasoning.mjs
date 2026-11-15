@@ -12,6 +12,15 @@ export function compatibleKimiProfile(p){
 export function modelSource(p){try{const host=new URL(p.baseUrl).hostname;if(host==='openrouter.ai')return 'openrouter';if(host==='maas.qianwenaiapi.com')return 'qwen';}catch{}return '';}
 export const chosenEffort=p=>p.reasoningEffort||(p.replyMode==='thinking'?'default':'auto');
 export const waitSeconds=p=>p.timeoutSeconds??180;
+const VERTEX_GEMINI_4=['gemini-4-hydrogen','gemini-4-carbon','gemini-4-argon'];
+export const isVertexGemini4=p=>p.provider==='vertex'&&VERTEX_GEMINI_4.includes(p.model);
+const usesVertexAutoThinking=p=>isVertexGemini4(p)&&chosenEffort(p)==='auto';
+export function vertexAutoThinking(p,taskType){
+  if(!usesVertexAutoThinking(p))return null;
+  if(taskType==='guess')return 'LOW';
+  if(taskType==='draw')return 'MEDIUM';
+  return null;
+}
 export function effortChoices(profile){
   const r=profile?.reasoning;if(!r)return ['auto','default'];
   const levels=Array.isArray(r.supported_efforts)?r.supported_efforts:r.supported_efforts===null?['minimal','low','medium','high','xhigh','max']:[];
@@ -31,6 +40,8 @@ export function validateControls(p,profile){
   if(!WAIT_SECONDS.includes(waitSeconds(p)))throw new Error('最长等待时间须从列表中选择。');
 }
 export function reasoningSummary(p,profile){
+  if(usesVertexAutoThinking(p))return '自动快速档使用低档猜词、中档作画，其他任务使用平台默认。';
+  if(p.provider==='vertex'&&chosenEffort(p)==='default')return '当前使用平台默认思考强度。';
   profile??=compatibleKimiProfile(p);
   let effort;try{effort=resolveEffort(p,profile);}catch(e){return e.message;}
   if(!profile?.reasoning)return '尚未取得此型号的思考参数，自动档会保留平台默认。';
