@@ -16,6 +16,45 @@ import {CATEGORIES,CATEGORY_LEVELS} from './lib/words.mjs';
 import {banterMarkup,banterPending,bindBanterControls,captureBanterDraft,restoreBanterDraft} from './banter-view.mjs';
 
 const $=id=>document.getElementById(id);
+const backToTop = $('backToTop');
+const pageContent = document.querySelector('main');
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+let backToTopFrame = 0;
+
+function updateBackToTop() {
+  backToTopFrame = 0;
+  const pastThreshold = window.scrollY > 300;
+  backToTop.toggleAttribute('data-past-threshold', pastThreshold);
+  if (!pastThreshold) {
+    backToTop.inert = true;
+    return;
+  }
+
+  const arrow = backToTop.getBoundingClientRect();
+  // 宽屏有留白，窄屏只在右下角的画布和控件都让开时显示。
+  const overlapsContent = arrow.left < pageContent.getBoundingClientRect().right &&
+    Array.from(pageContent.querySelectorAll('canvas, button, a[href], input, select, textarea, label, summary, [tabindex]')).some(control => {
+      const bounds = control.getBoundingClientRect();
+      return arrow.left < bounds.right && arrow.right > bounds.left &&
+        arrow.top < bounds.bottom && arrow.bottom > bounds.top;
+    });
+  backToTop.inert = overlapsContent;
+}
+
+function scheduleBackToTopUpdate() {
+  if (!backToTopFrame) backToTopFrame = requestAnimationFrame(updateBackToTop);
+}
+
+window.addEventListener('scroll', scheduleBackToTopUpdate, {capture: true, passive: true});
+window.addEventListener('resize', scheduleBackToTopUpdate);
+window.addEventListener('pageshow', scheduleBackToTopUpdate);
+new ResizeObserver(scheduleBackToTopUpdate).observe(pageContent);
+backToTop.onclick = () => {
+  document.querySelector('.topbar .brand').focus({preventScroll: true});
+  window.scrollTo({top: 0, behavior: reduceMotion.matches ? 'instant' : 'smooth'});
+};
+updateBackToTop();
+
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const settings=createSettings();
 const config={players:settings.list(),categories:CATEGORIES,categoryLevels:CATEGORY_LEVELS};
@@ -47,6 +86,7 @@ function confirmAction(title,text,yes='确定'){return new Promise(resolve=>{$('
 
 const LOBBY_PREVIEW=['chatgpt','gemini','deepseek'];
 function renderLobby(){
+  scheduleBackToTopUpdate();
   // 大厅只列出已连接 Key 的 AI；一个都没有时引导去连接。
   const readyPlayers=config.players.filter(p=>p.ready);
   for(const id of [...selected])if(!readyPlayers.some(p=>p.id===id))selected.delete(id);
@@ -132,6 +172,7 @@ function scheduleRender(){
   queueMicrotask(()=>{renderPending=false;syncMatch();});
 }
 function render(){
+  scheduleBackToTopUpdate();
   $('lobby').hidden=!!game;$('game').hidden=!game||game.phase==='finished';$('results').hidden=!game||game.phase!=='finished';
   const relay=game?.mode==='relay';$('game').classList.toggle('relay-arena',relay);$('relayStageBar').hidden=!relay||game?.phase==='finished';$('autoContinue').closest('label').hidden=relay;document.querySelector('.playback-speed').hidden=relay;
   playerSeats.update(game,animating);

@@ -728,3 +728,56 @@ body .companion-copy select{background-color:var(--lv-fill);border-color:var(--l
 
 /* 背景和网站浅色模式一致：纯色，不要点阵 */
 html,body,body.roundtable,body.avatar-page{background:#faf8ff}
+
+#backToTop {
+  position: fixed;
+  z-index: 10;
+  inset-inline-end: max(10px, env(safe-area-inset-right));
+  inset-block-end: max(12px, env(safe-area-inset-bottom));
+  display: grid;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 44px;
+  padding: 0;
+  border-radius: 50%;
+  color: #576589;
+  background: #faf8ff;
+  animation: back-to-top-in .18s ease-out;
+}
+#backToTop[inert],
+body:has(dialog:modal) #backToTop {
+  visibility: hidden;
+  pointer-events: none;
+  animation: none;
+}
+#backToTop::before {
+  content: '';
+  inline-size: 8px;
+  block-size: 8px;
+  border: solid currentColor;
+  border-width: 2px 0 0 2px;
+  transform: translateY(2px) rotate(45deg);
+}
+#backToTop:hover:not(:disabled), #backToTop:focus-visible {
+  transform: none;
+  color: var(--blue);
+  background: #fff;
+}
+@keyframes back-to-top-in { from { opacity: 0; } }
+
+/* 宽屏上按钮放在原有的 40px 侧边留白。 */
+@media (min-width: 1101px) and (hover: hover) and (pointer: fine) {
+  #backToTop {
+    inset-inline-end: 6px;
+    inset-block-end: 18px;
+    inline-size: 32px;
+    block-size: 32px;
+    outline-offset: -1px;
+  }
+}
+@media (max-width: 1100px), (hover: none), (pointer: coarse) {
+  /* 当末尾的内容也贴着右下角时，可以多滚一点看到箭头。 */
+  .app-shell:has(#backToTop[data-past-threshold]) {
+    padding-block-end: calc(56px + env(safe-area-inset-bottom));
+  }
+}
